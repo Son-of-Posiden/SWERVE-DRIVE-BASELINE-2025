@@ -169,7 +169,7 @@ public class SwerveModule {
         Rotation2d angle = (Math.abs(state.speedMetersPerSecond) <= (Constants.Swerve.maxSpeed * 0.01)) ? lastAngle : state.angle;
 
 
-        double percentOutput = state.speedMetersPerSecond / Constants.Swerve.maxSpeed;
+        double percentOutput = drivePidController.calculate(getDrivePosition(), state.speedMetersPerSecond) / Constants.Swerve.maxSpeed;
         driveMotor.set(percentOutput);
         //double driveOutput = drivePidController.calculate(getDrivePosition(), percentOutput);
 
