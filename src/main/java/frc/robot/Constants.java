@@ -4,8 +4,6 @@
 
 package frc.robot;
 
-import com.ctre.phoenix6.signals.NeutralModeValue;
-
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
@@ -17,6 +15,7 @@ import frc.lib.util.SwerveModuleConstants;
 
 import com.pathplanner.lib.config.ModuleConfig;
 import com.pathplanner.lib.config.RobotConfig;
+import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 
 
 /**
@@ -145,8 +144,8 @@ public final class Constants {
         public static final boolean canCoderInvert = chosenModule.canCoderInvert;
 
         //Not sure if this is right.
-        public static final NeutralModeValue driveNeutralMode = NeutralModeValue.Brake;
-        public static final NeutralModeValue turnNeutralMode = NeutralModeValue.Coast;
+        public static final IdleMode driveNeutralMode = IdleMode.kBrake;
+        public static final IdleMode turnNeutralMode = IdleMode.kCoast;
 
         //All pretty self explanatory, and you *shouldn't* have to mess with these. I think.
         public static final double driveConversionPositionFactor = (wheelDiameter * Math.PI) / driveGearRatio;
@@ -171,7 +170,7 @@ public final class Constants {
           (wheelDiameter/2), //Wheel Radious, in meters.
           maxSpeed, //Max Speed, in meters per second. Might want max Rotations Per Minute (RPM)
           (forceToPull/weight), //Coefficent of rolling friction. Might want the regular coefficent of friction.
-          DCMotor.getFalcon500(1), //The Drive Motor Gearbox, including gear reductions. Unware if it is 1 or 4.
+          DCMotor.getNEO(1), //The Drive Motor Gearbox, including gear reductions. Unware if it is 1 or 4.
           driveSupplyCurrentLimit, //Drive Current Limit. Don't know if Supply is the correct type of limit.
           2
           );

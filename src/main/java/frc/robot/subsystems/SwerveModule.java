@@ -8,11 +8,13 @@ import com.ctre.phoenix6.configs.CANcoderConfiguration;
 import com.ctre.phoenix6.configs.ClosedLoopRampsConfigs;
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.OpenLoopRampsConfigs;
-import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.hardware.CANcoder;
-import com.ctre.phoenix6.hardware.TalonFX;
-import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.SensorDirectionValue;
+import com.revrobotics.spark.SparkMax;
+import com.revrobotics.spark.SparkBase.PersistMode;
+import com.revrobotics.spark.SparkBase.ResetMode;
+import com.revrobotics.spark.SparkLowLevel.MotorType;
+import com.revrobotics.spark.config.SparkMaxConfig;
 
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -23,8 +25,8 @@ import frc.robot.Constants;
 
 public class SwerveModule {
 
-    private final TalonFX driveMotor;
-    private final TalonFX turnMotor;
+    private final SparkMax driveMotor;
+    private final SparkMax turnMotor;
 
     //private RelativeEncoder driveEncoder;
     private final CANcoder absoluteEncoder;
@@ -32,18 +34,22 @@ public class SwerveModule {
     double integratedEncoderValue;
     double integratedEncoderVelocity;
 
+    double driveEncoderValue;
+    double driveEncoderVelocity;
+
     double absoluteEncoderOffsetRad;
     
     public final int swervePodId;
 
     public Rotation2d lastAngle;
 
-    TalonFXConfiguration motorConfigs = new TalonFXConfiguration();
+    SparkMaxConfig motorConfigs = new SparkMaxConfig();
     OpenLoopRampsConfigs openLoopConfigs = new OpenLoopRampsConfigs();
     ClosedLoopRampsConfigs closedLoopConfigs = new ClosedLoopRampsConfigs();
     CurrentLimitsConfigs currentLimitsConfigs = new CurrentLimitsConfigs();
     CANcoderConfiguration absoluteCanCoderConfig = new CANcoderConfiguration();
 
+    private final PIDController drivePidController;
     private final PIDController turnPidController;
 
     public SwerveModule(
@@ -55,15 +61,19 @@ public class SwerveModule {
     ) {
         this.swervePodId = swervePodId;
 
-        driveMotor = new TalonFX(driveMotorId, Constants.Swerve.canbusName);
+        driveMotor = new SparkMax(driveMotorId, MotorType.kBrushless);
 
-        turnMotor = new TalonFX(turnMotorId, Constants.Swerve.canbusName);
-        turnMotor.getRotorPosition().refresh();
-        integratedEncoderValue = turnMotor.getRotorPosition().getValueAsDouble();
-        integratedEncoderVelocity = turnMotor.getRotorVelocity().getValueAsDouble();
+        turnMotor = new SparkMax(turnMotorId, MotorType.kBrushless);
+        //turnMotor.getRotorPosition().refresh();
+        integratedEncoderValue = turnMotor.getEncoder().getPosition();
+        integratedEncoderVelocity = turnMotor.getEncoder().getVelocity();
+
+        driveEncoderValue = driveMotor.getEncoder().getPosition();
+        driveEncoderVelocity = driveMotor.getEncoder().getVelocity();
 
         configMotors();
 
+        drivePidController = new PIDController(Constants.Swerve.driveKP, Constants.Swerve.driveKI, Constants.Swerve.driveKD);
 
         turnPidController = new PIDController(Constants.Swerve.turnKP, Constants.Swerve.turnKI, Constants.Swerve.turnKD);
         turnPidController.enableContinuousInput(-Math.PI, Math.PI);
@@ -78,81 +88,28 @@ public class SwerveModule {
     }
 
     private void configMotors() {
-        
-        openLoopConfigs.DutyCycleOpenLoopRampPeriod = Constants.Swerve.openLoopRampDutyCycle;
-        openLoopConfigs.TorqueOpenLoopRampPeriod = Constants.Swerve.openLoopRampTorque;
-        openLoopConfigs.VoltageOpenLoopRampPeriod = Constants.Swerve.openLoopRampVoltage;
-        
-        closedLoopConfigs.DutyCycleClosedLoopRampPeriod = Constants.Swerve.closedLoopRampDutyCycle;
-        closedLoopConfigs.TorqueClosedLoopRampPeriod = Constants.Swerve.closedLoopRampTorque;
-        closedLoopConfigs.VoltageClosedLoopRampPeriod = Constants.Swerve.closedLoopRampVoltage;
-        
-        currentLimitsConfigs.SupplyCurrentLimitEnable = Constants.Swerve.driveEnableSupplyCurrentLimit;
-        currentLimitsConfigs.SupplyCurrentLimit = Constants.Swerve.driveSupplyCurrentLimit;
-        //Unware if LowerLimit and LowerTime are the aproprate switches.
-        currentLimitsConfigs.SupplyCurrentLowerLimit = Constants.Swerve.driveSupplyCurrentThreshold;
-        currentLimitsConfigs.SupplyCurrentLowerTime = Constants.Swerve.driveSupplyTimeThreshold;
-
         configDriveMotor();
         configTurnMotor();
     }
 
     private void configDriveMotor() {
-        motorConfigs.Slot0.kP = Constants.Swerve.driveKP;
-        motorConfigs.Slot0.kI = Constants.Swerve.driveKI;
-        motorConfigs.Slot0.kD = Constants.Swerve.driveKD;
-        motorConfigs.Slot0.kV = Constants.Swerve.driveKF;
-        
-        motorConfigs.OpenLoopRamps = openLoopConfigs;
-        motorConfigs.ClosedLoopRamps = closedLoopConfigs;
-        motorConfigs.CurrentLimits = currentLimitsConfigs;
+        motorConfigs.inverted(Constants.Swerve.driveMotorInvert);
+        motorConfigs.idleMode(Constants.Swerve.driveNeutralMode);
+        motorConfigs.openLoopRampRate(Constants.Swerve.openLoopRampDutyCycle);
+        motorConfigs.closedLoopRampRate(Constants.Swerve.closedLoopRampDutyCycle);
+        motorConfigs.smartCurrentLimit(Constants.Swerve.driveSupplyCurrentLimit, Constants.Swerve.driveSupplyCurrentThreshold);
 
-        /* POSSIBLY INVERTED, IN A WAY YOU CAN"T FIX IN CONSTENTS  */
-        if (Constants.Swerve.driveMotorInvert) {
-            motorConfigs.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
-        } else {motorConfigs.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive;}
-
-        /* Testing needed to conferm if this is correct or not. Unlikely to be correct. */
-
-        // motorConfigs.OpenLoopRamps.equals(openLoopConfigs);
-        // motorConfigs.ClosedLoopRamps.equals(closedLoopConfigs);
-        // motorConfigs.CurrentLimits.equals(currentLimitsConfigs);
-        // motorConfigs.MotorOutput.Inverted.equals(Constants.Swerve.driveMotorInvert);
-        
-        /* Use in case of emergency */
-        //driveMotor.setInverted(Constants.Swerve.driveMotorInvert);
-
-        driveMotor.getConfigurator().apply(motorConfigs, 0.050);
-        driveMotor.setNeutralMode(Constants.Swerve.driveNeutralMode);
+        driveMotor.configure(motorConfigs, ResetMode.kResetSafeParameters, PersistMode.kNoPersistParameters);
     }
 
     private void configTurnMotor() {
-        motorConfigs.Slot0.kP = Constants.Swerve.turnKP;
-        motorConfigs.Slot0.kI = Constants.Swerve.turnKI;
-        motorConfigs.Slot0.kD = Constants.Swerve.turnKD;
-        motorConfigs.Slot0.kV = Constants.Swerve.turnKF;
-        
-        motorConfigs.OpenLoopRamps = openLoopConfigs;
-        motorConfigs.ClosedLoopRamps = closedLoopConfigs;
-        motorConfigs.CurrentLimits = currentLimitsConfigs;
+        motorConfigs.inverted(Constants.Swerve.angleMotorInvert);
+        motorConfigs.idleMode(Constants.Swerve.turnNeutralMode);
+        motorConfigs.openLoopRampRate(Constants.Swerve.openLoopRampDutyCycle);
+        motorConfigs.closedLoopRampRate(Constants.Swerve.closedLoopRampDutyCycle);
+        motorConfigs.smartCurrentLimit(Constants.Swerve.driveSupplyCurrentLimit, Constants.Swerve.driveSupplyCurrentThreshold);
 
-        /* POSSIBLY INVERTED, IN A WAY YOU CAN"T FIX IN CONSTENTS  */
-        if (Constants.Swerve.angleMotorInvert) {
-            motorConfigs.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
-        } else {motorConfigs.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive;}
-
-        /* Testing needed to conferm if this is correct or not. Unlikely to be correct. */
-
-        // motorConfigs.OpenLoopRamps.equals(openLoopConfigs);
-        // motorConfigs.ClosedLoopRamps.equals(closedLoopConfigs);
-        // motorConfigs.CurrentLimits.equals(currentLimitsConfigs);
-        // motorConfigs.MotorOutput.Inverted.equals(Constants.Swerve.angleMotorInvert);
-        
-        /* Use in case of emergency */
-        //driveMotor.setInverted(Constants.Swerve.angleMotorInvert);
-
-        turnMotor.getConfigurator().apply(motorConfigs, 0.050);
-        driveMotor.setNeutralMode(Constants.Swerve.turnNeutralMode);
+        driveMotor.configure(motorConfigs, ResetMode.kResetSafeParameters, PersistMode.kNoPersistParameters);
     }
 
     private void configAbsoluteEncoder() {
@@ -167,7 +124,7 @@ public class SwerveModule {
 
     public double getDrivePosition() {
         //Returns rotations, orignal returned ticks.
-        return driveMotor.getRotorPosition().getValueAsDouble();
+        return driveEncoderValue;
     }
     public double getDrivePositionMeters() {
         //Could be the wrong equation, I couldn't test it.
@@ -178,7 +135,7 @@ public class SwerveModule {
     }
 
     public double getDriveVelocity() {
-        return driveMotor.getRotorVelocity().getValueAsDouble();
+        return driveEncoderVelocity;
     }
 
     public double getTurnVelocity() {
@@ -197,7 +154,7 @@ public class SwerveModule {
 
     //Possible error here, where the drive motor rotor doesn't get set to 0 each time. For the life of me I couldn't figure out how to get it to set to 0.
     public void resetEncoders() {
-        driveMotor.getRotorPosition().refresh();
+        driveMotor.getEncoder().setPosition(0);
         integratedEncoderValue = getAbsoluteEncoderRadians();
     }
 
@@ -214,6 +171,7 @@ public class SwerveModule {
 
         double percentOutput = state.speedMetersPerSecond / Constants.Swerve.maxSpeed;
         driveMotor.set(percentOutput);
+        //double driveOutput = drivePidController.calculate(getDrivePosition(), percentOutput);
 
         double turnOutput = turnPidController.calculate(getTurnPosition(), angle.getRadians());
 
