@@ -10,7 +10,9 @@ import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.OpenLoopRampsConfigs;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.signals.SensorDirectionValue;
+import com.revrobotics.spark.SparkClosedLoopController;
 import com.revrobotics.spark.SparkMax;
+import com.revrobotics.spark.SparkBase.ControlType;
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
@@ -43,14 +45,18 @@ public class SwerveModule {
 
     public Rotation2d lastAngle;
 
-    SparkMaxConfig motorConfigs = new SparkMaxConfig();
     OpenLoopRampsConfigs openLoopConfigs = new OpenLoopRampsConfigs();
     ClosedLoopRampsConfigs closedLoopConfigs = new ClosedLoopRampsConfigs();
     CurrentLimitsConfigs currentLimitsConfigs = new CurrentLimitsConfigs();
     CANcoderConfiguration absoluteCanCoderConfig = new CANcoderConfiguration();
 
-    private final PIDController drivePidController;
-    private final PIDController turnPidController;
+    private final SparkClosedLoopController driveClosedLoopController;
+    private final SparkClosedLoopController turnClosedLoopController;
+
+    SparkMaxConfig driveMotorConfig = new SparkMaxConfig();
+    SparkMaxConfig turnMotorConfig = new SparkMaxConfig();
+
+    private final PIDController manualTurnPidController;
 
     public SwerveModule(
         int swervePodId,
@@ -73,10 +79,11 @@ public class SwerveModule {
 
         configMotors();
 
-        drivePidController = new PIDController(Constants.Swerve.driveKP, Constants.Swerve.driveKI, Constants.Swerve.driveKD);
+        driveClosedLoopController = driveMotor.getClosedLoopController();
+        turnClosedLoopController = turnMotor.getClosedLoopController();
 
-        turnPidController = new PIDController(Constants.Swerve.turnKP, Constants.Swerve.turnKI, Constants.Swerve.turnKD);
-        turnPidController.enableContinuousInput(-Math.PI, Math.PI);
+        manualTurnPidController = new PIDController(Constants.Swerve.turnKP, Constants.Swerve.turnKI, Constants.Swerve.turnKD);
+        manualTurnPidController.enableContinuousInput(-Math.PI, Math.PI);
 
 
         absoluteEncoder = new CANcoder(absoluteEncoderId, Constants.Swerve.canbusName);
@@ -93,23 +100,41 @@ public class SwerveModule {
     }
 
     private void configDriveMotor() {
-        motorConfigs.inverted(Constants.Swerve.driveMotorInvert);
-        motorConfigs.idleMode(Constants.Swerve.driveNeutralMode);
-        motorConfigs.openLoopRampRate(Constants.Swerve.openLoopRampDutyCycle);
-        motorConfigs.closedLoopRampRate(Constants.Swerve.closedLoopRampDutyCycle);
-        motorConfigs.smartCurrentLimit(Constants.Swerve.driveSupplyCurrentLimit, Constants.Swerve.driveSupplyCurrentThreshold);
+        driveMotorConfig.inverted(Constants.Swerve.driveMotorInvert);
+        driveMotorConfig.idleMode(Constants.Swerve.driveNeutralMode);
+        driveMotorConfig.openLoopRampRate(Constants.Swerve.openLoopRampDutyCycle);
+        driveMotorConfig.closedLoopRampRate(Constants.Swerve.closedLoopRampDutyCycle);
+        driveMotorConfig.smartCurrentLimit(Constants.Swerve.driveSupplyCurrentLimit, Constants.Swerve.driveSupplyCurrentThreshold);
 
-        driveMotor.configure(motorConfigs, ResetMode.kResetSafeParameters, PersistMode.kNoPersistParameters);
+        driveMotorConfig.closedLoop
+        .p(Constants.Swerve.driveKP)
+        .i(Constants.Swerve.driveKI)
+        .d(Constants.Swerve.driveKD)
+        .velocityFF(1/Constants.Swerve.drivePureKV)
+        .minOutput(Constants.Swerve.driveMinSpeedOutput)
+        .maxOutput(Constants.Swerve.driveMaxSpeedOutput);
+
+        driveMotor.configure(driveMotorConfig, ResetMode.kResetSafeParameters, PersistMode.kNoPersistParameters);
     }
 
     private void configTurnMotor() {
-        motorConfigs.inverted(Constants.Swerve.angleMotorInvert);
-        motorConfigs.idleMode(Constants.Swerve.turnNeutralMode);
-        motorConfigs.openLoopRampRate(Constants.Swerve.openLoopRampDutyCycle);
-        motorConfigs.closedLoopRampRate(Constants.Swerve.closedLoopRampDutyCycle);
-        motorConfigs.smartCurrentLimit(Constants.Swerve.driveSupplyCurrentLimit, Constants.Swerve.driveSupplyCurrentThreshold);
+        turnMotorConfig.inverted(Constants.Swerve.angleMotorInvert);
+        turnMotorConfig.idleMode(Constants.Swerve.turnNeutralMode);
+        turnMotorConfig.openLoopRampRate(Constants.Swerve.openLoopRampDutyCycle);
+        turnMotorConfig.closedLoopRampRate(Constants.Swerve.closedLoopRampDutyCycle);
+        turnMotorConfig.smartCurrentLimit(Constants.Swerve.driveSupplyCurrentLimit, Constants.Swerve.driveSupplyCurrentThreshold);
 
-        driveMotor.configure(motorConfigs, ResetMode.kResetSafeParameters, PersistMode.kNoPersistParameters);
+        turnMotorConfig.closedLoop
+        .p(Constants.Swerve.turnKP)
+        .i(Constants.Swerve.turnKI)
+        .d(Constants.Swerve.turnKD)
+        .velocityFF(1/Constants.Swerve.turnPureKV)
+        .minOutput(Constants.Swerve.turnMinSpeedOutput)
+        .maxOutput(Constants.Swerve.turnMaxSpeedOutput)
+        .positionWrappingEnabled(true)
+        .positionWrappingInputRange(-Math.PI, Math.PI);
+
+        driveMotor.configure(turnMotorConfig, ResetMode.kResetSafeParameters, PersistMode.kNoPersistParameters);
     }
 
     private void configAbsoluteEncoder() {
@@ -168,19 +193,20 @@ public class SwerveModule {
 
         Rotation2d angle = (Math.abs(state.speedMetersPerSecond) <= (Constants.Swerve.maxSpeed * 0.01)) ? lastAngle : state.angle;
 
+        driveClosedLoopController.setReference(state.speedMetersPerSecond, ControlType.kVelocity);
 
-        double percentOutput = drivePidController.calculate(getDrivePosition(), state.speedMetersPerSecond) / Constants.Swerve.maxSpeed;
-        driveMotor.set(percentOutput);
+        turnClosedLoopController.setReference(angle.getRadians(), ControlType.kPosition);
+
+        // percentOutput = drivePidController.calculate(getDrivePosition(), state.speedMetersPerSecond); // Constants.Swerve.maxSpeed;
+        //driveMotor.set(percentOutput);
         //double driveOutput = drivePidController.calculate(getDrivePosition(), percentOutput);
-
-        double turnOutput = turnPidController.calculate(getTurnPosition(), angle.getRadians());
-
-        turnMotor.set(turnOutput);
+        //double turnOutput = manualTurnPidController.calculate(getTurnPosition(), angle.getRadians());
+        //turnMotor.set(turnOutput);
 
         lastAngle = angle;
 
         if (Constants.Swerve.outputPodInfo) {
-            SmartDashboard.putNumber("swerve " + swervePodId + " turn output", turnOutput);
+            SmartDashboard.putNumber("swerve " + swervePodId + " turn output", turnMotor.getAppliedOutput());
             SmartDashboard.putNumber("swerve " + swervePodId + " turn position", getTurnPosition());
             SmartDashboard.putNumber("swerve " + swervePodId + " turn setpoint", state.angle.getRadians());
             SmartDashboard.putString("swerve[" + swervePodId + "] state", state.toString());

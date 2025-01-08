@@ -46,6 +46,13 @@ public final class Constants {
         //Multiplies the turn speed in TeleOp
         public static final double maxTurnMultiplier = 0.5;
 
+        //Min and Max output values of the motors. In percentages, with 1 being 100%. Feel free to change if it's too fast.
+        public static final double driveMinSpeedOutput = 0.0;
+        public static final double driveMaxSpeedOutput = 1.0;
+
+        public static final double turnMinSpeedOutput = 0.0;
+        public static final double turnMaxSpeedOutput = 1.0;
+
         //Deadbanding essentally ignores everything under a certain threashold, so that the robot doesn't start turning if you acidentally move the joystick 1 micrometer.
         //The better your controller the lower these values will need to be. Ajust as needed.
         public static final double xDeadband = 0.1;
@@ -97,12 +104,14 @@ public final class Constants {
         public static final double driveKI = 0.0;
         public static final double driveKD = 0.0;
         public static final double driveKF = 0.0;
+        public static final double drivePureKV = 0.0;
     
         //Turn motor PID values
         public static final double turnKP = 0.6;
         public static final double turnKI = 0.0;
         public static final double turnKD = 0.0;
         public static final double turnKF = 0.0;
+        public static final double turnPureKV = 0.0;
 
         //Kp values used for path planner trajectories
         public static final double autonXKp = 5.0;
