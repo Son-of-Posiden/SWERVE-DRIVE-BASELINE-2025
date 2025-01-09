@@ -2,8 +2,9 @@
  A basline of swerve drive code for the 2025 FRC FIRST robotics season
  Built to be used with PathPlanner
 
- This repository/baseline swerve drive code is designed for a 4 module, all FalconFX motor swerve drive.
-Converting it into Kraken, or other CTRE motors should be fairly easy, but it comes built for FalconFX motors. Converting it to run NEO motors shouldn’t be hard either.
+ This repository/baseline swerve drive code is designed for a 4 module, all FalconFX or Neo motor swerve drive.
+Converting it into Kraken, or other CTRE motors should be fairly easy, but it comes built for FalconFX motors.
+Neo motor code is in the branch labeled "NEO Drive". The "Main" branch is FalconFX.
 
 Needed:
 You will need an absolute encoder for each swerve module. Some bought modules come with them, some don’t.
