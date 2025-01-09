@@ -98,20 +98,22 @@ public final class Constants {
         public static final COTSFalconSwerveConstants chosenModule =
           COTSFalconSwerveConstants.SDSMK4(COTSFalconSwerveConstants.driveGearRatios.SDSMK4_L4); //TODO: Change it to your type of module
     
-        /* PID Values. If it's nonzero here, it probably needs to be tuned. */
+        //TODO: Get these values from the SysId program.
+        //These must be tuned to your robot. You can get the values by running the SysId program. To do so, press 1 and 2 at the same time.
+        //The robot will move around a bit, so ensure it has plenty of room. Afterword, look at the values and enter them here.
         //Drive motor PID values
         public static final double driveKP = 0.05;
         public static final double driveKI = 0.0;
         public static final double driveKD = 0.0;
         public static final double driveKF = 0.0;
-        public static final double drivePureKV = 0.0;
+        public static final double drivePureKV = 0.0; //just regular KV
     
         //Turn motor PID values
         public static final double turnKP = 0.6;
         public static final double turnKI = 0.0;
         public static final double turnKD = 0.0;
         public static final double turnKF = 0.0;
-        public static final double turnPureKV = 0.0;
+        public static final double turnPureKV = 0.0; //just regular KV
 
         //Kp values used for path planner trajectories
         public static final double autonXKp = 5.0;
@@ -119,12 +121,9 @@ public final class Constants {
         public static final double autonZKp = 1.0;
 
         //TODO: Drive Motor Characterization Values 
-        //Divide SYSID values by 12 to convert from volts to percent output for CTRE 
-        //These must be tuned to your robot. You can get the values by using a program like https://github.com/wpilibsuite/frc-characterization, or the Sysid tool in WPILIB,
-        //but read up on it more. It is importent to lock the wheels in place when getting the values, if my memory serves me.
-        public static final double driveKS = (0.13923 / 12); 
-        public static final double driveKV = (2.5957 / 12);
-        public static final double driveKA = (0.73919 / 12);
+        public static final double driveKS = (0.13923); 
+        public static final double driveKV = (2.5957);
+        public static final double driveKA = (0.73919);
 
         //Each controls how fast it's respective property ramps up. At 0, it just sends full power instently. A non-zero value *can* make it run smoother, though most times,
         //You'll either see it do nothing, or fix absolutely everything instently.

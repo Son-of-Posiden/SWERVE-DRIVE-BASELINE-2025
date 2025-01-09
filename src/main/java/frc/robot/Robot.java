@@ -4,8 +4,11 @@
 
 package frc.robot;
 
+import org.littletonrobotics.urcl.URCL;
+
 import com.pathplanner.lib.commands.FollowPathCommand;
 
+import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
@@ -31,6 +34,12 @@ public class Robot extends TimedRobot {
     m_robotContainer = new RobotContainer();
     //This 'warms up' the path planner code. Without it, the first run would have much more delay then the others, because java likes to java.
     FollowPathCommand.warmupCommand().schedule();
+
+    //Enable the NEO motor port of the SysID tool
+    DataLogManager.start();
+    URCL.start();
+
+    URCL.start(DataLogManager.getLog());
   }
 
   /**
