@@ -220,6 +220,14 @@ public class SwerveModule {
         );
       }
 
+    public SparkMax getDriveMotor() {
+        return driveMotor;
+    }
+
+    public SparkMax getTurnMotor() {
+        return turnMotor;
+    }
+
     public void stop() {
         driveMotor.set(0);
         turnMotor.set(0);

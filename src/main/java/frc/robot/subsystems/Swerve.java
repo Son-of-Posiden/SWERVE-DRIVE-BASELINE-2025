@@ -16,6 +16,7 @@ import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
+import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -162,6 +163,16 @@ public class Swerve extends SubsystemBase {
     return gyro.getYaw().getValueAsDouble();
   }
 
+  public void setAllVoltage(Voltage voltage) {
+    frontLeft.getDriveMotor().setVoltage(voltage);
+    frontLeft.getTurnMotor().setVoltage(voltage);
+    frontRight.getDriveMotor().setVoltage(voltage);
+    frontRight.getTurnMotor().setVoltage(voltage);
+    backLeft.getDriveMotor().setVoltage(voltage);
+    backLeft.getTurnMotor().setVoltage(voltage);
+    backRight.getDriveMotor().setVoltage(voltage);
+    backRight.getTurnMotor().setVoltage(voltage);
+  }
   
 
   @Override

@@ -99,7 +99,10 @@ public final class Constants {
           COTSFalconSwerveConstants.SDSMK4(COTSFalconSwerveConstants.driveGearRatios.SDSMK4_L4); //TODO: Change it to your type of module
     
         //TODO: Get these values from the SysId program.
-        //These must be tuned to your robot. You can get the values by running the SysId program. To do so, press 1 and 2 at the same time.
+        //These must be tuned to your robot. You can get the values by running the SysId program. To do so, press 1 to run the first program, 2 to run the second, 3 the third,
+        //and 4 for the forth and final. From there, fallow the guide near the bottem of this https://docs.advantagescope.org/more-features/urcl/ website to get the files situated.
+        //Also looking at the guides from here https://docs.wpilib.org/en/stable/docs/software/advanced-controls/system-identification/viewing-diagnostics.html and down in the WPILib
+        //docs could prove rather useful at understanding what you're seeing.
         //The robot will move around a bit, so ensure it has plenty of room. Afterword, look at the values and enter them here.
         //Drive motor PID values
         public static final double driveKP = 0.05;

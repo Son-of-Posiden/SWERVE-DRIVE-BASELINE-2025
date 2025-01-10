@@ -19,7 +19,11 @@ import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Config;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Mechanism;
 
 /**
  * This class is where the bulk of the robot should be declared. Since Command-based is a
@@ -38,11 +42,21 @@ public class RobotContainer {
 
   private final SendableChooser<Command> autonChooser;
 
+  //System Identification stuff
+  SysIdRoutine systemIDRoutine;
+  Config systemIDConfig;
+  Mechanism systemIDMechanism;
+
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
     //Regester all your commands, otherwise they won't be availible in PathPlanner.
     NamedCommands.registerCommand("exampleCommand", new ExampleCommand(m_exampleSubsystem));
     NamedCommands.registerCommand("examplePathPlannerAuton", new ExamplePathPlannerAuton());
+
+    systemIDConfig = new Config();
+    systemIDMechanism = new Mechanism((voltage) -> m_swerve.setAllVoltage(voltage), null, m_swerve);
+
+    systemIDRoutine = new SysIdRoutine(systemIDConfig, systemIDMechanism);
 
     m_swerve.setDefaultCommand(new SwerveTeleopCommand(
           m_swerve,
@@ -66,7 +80,10 @@ public class RobotContainer {
     new Trigger(m_exampleSubsystem::exampleCondition)
         .onTrue(new ExampleCommand(m_exampleSubsystem));
 
-    driverStick.button(1, null);
+    new JoystickButton(driverStick, 1).onTrue(systemIDRoutine.quasistatic(SysIdRoutine.Direction.kForward));
+    new JoystickButton(driverStick, 2).onTrue(systemIDRoutine.quasistatic(SysIdRoutine.Direction.kReverse));
+    new JoystickButton(driverStick, 3).onTrue(systemIDRoutine.dynamic(SysIdRoutine.Direction.kForward));
+    new JoystickButton(driverStick, 4).onTrue(systemIDRoutine.dynamic(SysIdRoutine.Direction.kReverse));
 
     // Schedule `exampleMethodCommand` when the Xbox controller's B button is pressed,
     // cancelling on release.
