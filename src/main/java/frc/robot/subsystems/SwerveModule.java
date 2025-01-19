@@ -13,8 +13,6 @@ import com.ctre.phoenix6.signals.SensorDirectionValue;
 import com.revrobotics.spark.SparkClosedLoopController;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.SparkBase.ControlType;
-import com.revrobotics.spark.SparkBase.PersistMode;
-import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.config.SparkMaxConfig;
 
@@ -77,7 +75,7 @@ public class SwerveModule {
         driveEncoderValue = driveMotor.getEncoder().getPosition();
         driveEncoderVelocity = driveMotor.getEncoder().getVelocity();
 
-        configMotors();
+        //configMotors();
 
         driveClosedLoopController = driveMotor.getClosedLoopController();
         turnClosedLoopController = turnMotor.getClosedLoopController();
@@ -94,6 +92,7 @@ public class SwerveModule {
         lastAngle = getState().angle;
     }
 
+    /*
     private void configMotors() {
         configDriveMotor();
         configTurnMotor();
@@ -136,6 +135,7 @@ public class SwerveModule {
 
         driveMotor.configure(turnMotorConfig, ResetMode.kResetSafeParameters, PersistMode.kNoPersistParameters);
     }
+    */
 
     private void configAbsoluteEncoder() {
         // 1 makes the value range 0, 1, 0.5 makes it -0.5 to 0.5, and so on.

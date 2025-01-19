@@ -4,7 +4,6 @@
 
 package frc.robot.subsystems;
 
-import com.ctre.phoenix6.hardware.Pigeon2;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.config.PIDConstants;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
@@ -17,6 +16,7 @@ import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.units.measure.Voltage;
+import edu.wpi.first.wpilibj.ADXRS450_Gyro;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -59,17 +59,17 @@ public class Swerve extends SubsystemBase {
   );
 
   // GYRO
-  private final Pigeon2 gyro;
-  public double initialRoll;
+  private final ADXRS450_Gyro gyro;
+  //public double initialRoll;
   private Field2d field;
   
   // ODOMETER
   private SwerveDriveOdometry odometry;
 
   public Swerve() {
-    gyro = new Pigeon2(Constants.Swerve.pigeon2GyroID, Constants.Swerve.canbusName);
+    gyro = new ADXRS450_Gyro();
     zeroGyroscope();
-    initialRoll = gyro.getRoll().getValueAsDouble();
+    //initialRoll = gyro.getAngle();
 
     odometry = new SwerveDriveOdometry(Constants.Swerve.swerveKinematics, getGyroscopeRotation(), getPositions());
 
@@ -102,11 +102,11 @@ public class Swerve extends SubsystemBase {
   }
 
   public void zeroGyroscope() {
-      gyro.setYaw(0.0);
+      gyro.reset();
   }
 
   public Rotation2d getGyroscopeRotation() {
-      return Rotation2d.fromDegrees(gyro.getYaw().getValueAsDouble());
+      return Rotation2d.fromDegrees(gyro.getAngle());
   }
 
   public double getHeading() {
@@ -155,6 +155,7 @@ public class Swerve extends SubsystemBase {
     odometry.resetPosition(getGyroscopeRotation(), getPositions(), pose);
   }
 
+  /* 
   public double getRoll() {
     return gyro.getRoll().getValueAsDouble();
   }
@@ -162,6 +163,7 @@ public class Swerve extends SubsystemBase {
   public double getYaw() {
     return gyro.getYaw().getValueAsDouble();
   }
+  */
 
   public void setAllVoltage(Voltage voltage) {
     frontLeft.getDriveMotor().setVoltage(voltage);
@@ -188,7 +190,6 @@ public class Swerve extends SubsystemBase {
       SmartDashboard.putNumber("bl abs angle", backLeft.getAbsoluteEncoderDegrees());
       SmartDashboard.putNumber("bl adjusted angle", backLeft.getAbsoluteEncoderRadians());
       SmartDashboard.putNumber("br abs angle", backRight.getAbsoluteEncoderDegrees());
-      SmartDashboard.putNumber("gyro roll", getRoll());
 
       SmartDashboard.putNumber("drive distance in meters", frontLeft.getDrivePositionMeters());
     }
