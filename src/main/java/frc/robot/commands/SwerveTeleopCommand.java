@@ -17,19 +17,19 @@ import frc.robot.subsystems.Swerve;
 public class SwerveTeleopCommand extends Command{
   
   private final Swerve swerve;
-  private DoubleSupplier x, y, z, visionOffset, driveInversionMultiplier;
+  private DoubleSupplier x, y, z, visionOffset; //driveInversionMultiplier;
   private double xOutput, yOutput, zOutput;
   private boolean isAuton;
 
   //This is the command that will be constently running during the driver operated period. Here, joystick inputs are turned into power outputs for motors.
   //The "isAuton" value is for autonomous alignment using a camera senser. So you don't miss.
-  //However, it is not currently coded, so you'll have to do that part yourself.
-  public SwerveTeleopCommand(Swerve swerve, DoubleSupplier x, DoubleSupplier y, DoubleSupplier z, boolean isAuton) {
+  public SwerveTeleopCommand(Swerve swerve, DoubleSupplier x, DoubleSupplier y, DoubleSupplier z, boolean isAuton, DoubleSupplier visionOffset) {
     this.swerve = swerve;
     this.x = x;
     this.y = y;
     this.z = z;
     this.isAuton = isAuton;
+    this.visionOffset = visionOffset;
 
     addRequirements(swerve);
   }
@@ -47,12 +47,15 @@ public class SwerveTeleopCommand extends Command{
     }
 
     // adjust for joystick drift
-    xOutput = modifyAxis(this.x.getAsDouble(), Constants.Swerve.xDeadband) * driveInversionMultiplier.getAsDouble();
-    yOutput = modifyAxis(this.y.getAsDouble(), Constants.Swerve.yDeadband) * driveInversionMultiplier.getAsDouble();
+    xOutput = modifyAxis(this.x.getAsDouble(), Constants.Swerve.xDeadband); //* driveInversionMultiplier.getAsDouble();
+    yOutput = modifyAxis(this.y.getAsDouble(), Constants.Swerve.yDeadband); //* driveInversionMultiplier.getAsDouble();
 
     zOutput = modifyAxis(this.z.getAsDouble(), Constants.Swerve.zDeadband);
 
-    yOutput = yOutput + visionOffset.getAsDouble();
+    if (isAuton) {
+      zOutput = zOutput + visionOffset.getAsDouble(); //Change to yOutput if you wish to align side-to-side rather then to face.
+    }
+
     if (Math.abs(yOutput) > 1) {
       yOutput = 1 * Math.signum(yOutput);
     }
@@ -78,7 +81,7 @@ public class SwerveTeleopCommand extends Command{
   // Returns true when the command should end.
   @Override
   public boolean isFinished() {
-    return isAuton ? visionOffset.getAsDouble() < 2 : false;
+    return isAuton ? visionOffset.getAsDouble() < Constants.Vision.allowedError : false;
   }
 
   private static double modifyAxis(double value, double deadband) {

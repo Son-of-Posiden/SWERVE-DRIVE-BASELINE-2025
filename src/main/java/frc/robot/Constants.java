@@ -242,4 +242,14 @@ public final class Constants {
             new SwerveModuleConstants(driveMotorID, angleMotorID, canCoderID, angleOffset);
         }
     }
+
+    public static class Vision {
+      public static final boolean isTunable = true;
+
+      public static final double alignmentKp = 0.01;
+      public static final double alignmentKi = 0.0;
+      public static final double alignmentKd = 0.0;
+
+      public static final double allowedError = 2.0;
+    }
 }
