@@ -148,6 +148,7 @@ public final class Constants {
 
         //Drive gear ratio = drive gear ratio, pretty simple.
         public static final double driveGearRatio = chosenModule.driveGearRatio;
+        public static final double angleGearRatio = chosenModule.angleGearRatio;
 
         //This is *NOT* where you invert the motors.
         public static final boolean driveMotorInvert = chosenModule.driveMotorInvert;

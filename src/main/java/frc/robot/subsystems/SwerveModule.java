@@ -21,6 +21,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import frc.lib.betalib.PidConfig;
 import frc.robot.Constants;
 
 public class SwerveModule {
@@ -39,6 +40,8 @@ public class SwerveModule {
 
     double absoluteEncoderOffsetRad;
     
+    double percentOutput;
+
     public final int swervePodId;
 
     public Rotation2d lastAngle;
@@ -55,6 +58,10 @@ public class SwerveModule {
     SparkMaxConfig turnMotorConfig = new SparkMaxConfig();
 
     private final PIDController manualTurnPidController;
+    private final PIDController manualDrivePidController;
+
+    PidConfig drivePidConfig;
+    PidConfig turnPidConfig;
 
     public SwerveModule(
         int swervePodId,
@@ -82,11 +89,15 @@ public class SwerveModule {
 
         manualTurnPidController = new PIDController(Constants.Swerve.turnKP, Constants.Swerve.turnKI, Constants.Swerve.turnKD);
         manualTurnPidController.enableContinuousInput(-Math.PI, Math.PI);
-
+        manualDrivePidController = new PIDController(Constants.Swerve.driveKP, Constants.Swerve.driveKI, Constants.Swerve.driveKD);
 
         absoluteEncoder = new CANcoder(absoluteEncoderId, Constants.Swerve.canbusName);
         configAbsoluteEncoder();
         this.absoluteEncoderOffsetRad = absoluteEncoderOffsetRad;
+
+        drivePidConfig = new PidConfig("Swerve Module Drive", Constants.Swerve.driveKP, Constants.Swerve.driveKI, Constants.Swerve.driveKD,  Constants.Swerve.isTunable);
+        turnPidConfig = new PidConfig("Swerve Module Turn", Constants.Swerve.turnKP, Constants.Swerve.turnKI, Constants.Swerve.turnKD,  Constants.Swerve.isTunable);
+
 
         resetEncoders();
         lastAngle = getState().angle;
@@ -193,12 +204,12 @@ public class SwerveModule {
 
         Rotation2d angle = (Math.abs(state.speedMetersPerSecond) <= (Constants.Swerve.maxSpeed * 0.01)) ? lastAngle : state.angle;
 
-        driveClosedLoopController.setReference(state.speedMetersPerSecond, ControlType.kVelocity);
+        //driveClosedLoopController.setReference(state.speedMetersPerSecond, ControlType.kVelocity);
+        //turnClosedLoopController.setReference(angle.getRadians(), ControlType.kPosition); // Constants.Swerve.maxSpeed;
 
-        turnClosedLoopController.setReference(angle.getRadians(), ControlType.kPosition);
+        driveMotor.set(manualDrivePidController.calculate((getDriveVelocity() / Constants.Swerve.driveGearRatio) * (Constants.Swerve.wheelCircumference), state.speedMetersPerSecond)); // Constants.Swerve.maxSpeed;
+        turnMotor.set(manualTurnPidController.calculate((getTurnPosition() / Constants.Swerve.angleGearRatio) * 360, state.angle.getDegrees())); //Might need to be radians, might not need to be mulitiplied by 360
 
-        // percentOutput = drivePidController.calculate(getDrivePosition(), state.speedMetersPerSecond); // Constants.Swerve.maxSpeed;
-        //driveMotor.set(percentOutput);
         //double driveOutput = drivePidController.calculate(getDrivePosition(), percentOutput);
         //double turnOutput = manualTurnPidController.calculate(getTurnPosition(), angle.getRadians());
         //turnMotor.set(turnOutput);
@@ -211,6 +222,9 @@ public class SwerveModule {
             SmartDashboard.putNumber("swerve " + swervePodId + " turn setpoint", state.angle.getRadians());
             SmartDashboard.putString("swerve[" + swervePodId + "] state", state.toString());
         }
+
+        drivePidConfig.updateFromSmartDashboard();
+        turnPidConfig.updateFromSmartDashboard();
     }
 
     public SwerveModulePosition getPosition() {
