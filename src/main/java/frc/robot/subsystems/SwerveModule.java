@@ -87,16 +87,18 @@ public class SwerveModule {
         driveClosedLoopController = driveMotor.getClosedLoopController();
         turnClosedLoopController = turnMotor.getClosedLoopController();
 
-        manualTurnPidController = new PIDController(Constants.Swerve.turnKP, Constants.Swerve.turnKI, Constants.Swerve.turnKD);
+        
+        drivePidConfig = new PidConfig("Swerve Module Drive", Constants.Swerve.driveKP, Constants.Swerve.driveKI, Constants.Swerve.driveKD,  Constants.Swerve.isTunable);
+        turnPidConfig = new PidConfig("Swerve Module Turn", Constants.Swerve.turnKP, Constants.Swerve.turnKI, Constants.Swerve.turnKD,  Constants.Swerve.isTunable);
+
+
+        manualTurnPidController = new PIDController(turnPidConfig.getKp(), turnPidConfig.getKi(), turnPidConfig.getKd());
         manualTurnPidController.enableContinuousInput(-Math.PI, Math.PI);
-        manualDrivePidController = new PIDController(Constants.Swerve.driveKP, Constants.Swerve.driveKI, Constants.Swerve.driveKD);
+        manualDrivePidController = new PIDController(drivePidConfig.getKp(), drivePidConfig.getKi(), drivePidConfig.getKd());
 
         absoluteEncoder = new CANcoder(absoluteEncoderId, Constants.Swerve.canbusName);
         configAbsoluteEncoder();
         this.absoluteEncoderOffsetRad = absoluteEncoderOffsetRad;
-
-        drivePidConfig = new PidConfig("Swerve Module Drive", Constants.Swerve.driveKP, Constants.Swerve.driveKI, Constants.Swerve.driveKD,  Constants.Swerve.isTunable);
-        turnPidConfig = new PidConfig("Swerve Module Turn", Constants.Swerve.turnKP, Constants.Swerve.turnKI, Constants.Swerve.turnKD,  Constants.Swerve.isTunable);
 
 
         resetEncoders();
